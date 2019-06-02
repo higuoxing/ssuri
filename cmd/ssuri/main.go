@@ -17,7 +17,7 @@ var generateJSONConfig *bool // generate JSON config, option -generate-json-conf
 func init() {
 	inputFileName = flag.String("i", "-", "input file (default: \"-\" for stdin)")
 	outputFileName = flag.String("o", "-", "output file (default: \"-\" for stdout)")
-	jsonMode = flag.Bool("json-mode", false, "read JSON as input (default: off)")
+	jsonMode = flag.Bool("json", false, "read JSON as input (default: off)")
 	dumpURI = flag.Bool("dump-uri", false, "dump base64 encoded URI")
 	generateJSONConfig = flag.Bool("generate-json-config", false, "generate JSON configurations")
 

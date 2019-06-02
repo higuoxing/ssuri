@@ -48,6 +48,7 @@ func generateShadowsocksClientConfig(uri string, outputFile *os.File) {
 	fmt.Fprintf(outputFile, "\n")
 }
 
+// decodeJSONToShadowsocksBase64URI ... Decode JSON file and encode it to base64 URI.
 func decodeJSONToShadowsocksBase64URI(data []byte, outputFile *os.File) {
 	sscc, err := ss.DecodeJSON(data)
 	if err != nil {
