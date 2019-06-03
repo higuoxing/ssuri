@@ -12,6 +12,7 @@ var inputFileName *string    // input file name, option -i
 var outputFileName *string   // output file name, option -o
 var jsonMode *bool           // run in JSON mode, option -json, default off
 var dumpURI *bool            // dump URI information
+var legacyMode *bool         // dump shadowsocks URI in legacy mode, option -legacy, default off
 var generateJSONConfig *bool // generate JSON config, option -generate-json-config
 
 func init() {
@@ -19,6 +20,7 @@ func init() {
 	outputFileName = flag.String("o", "-", "output file (default: \"-\" for stdout)")
 	jsonMode = flag.Bool("json", false, "read JSON as input (default: off)")
 	dumpURI = flag.Bool("dump-uri", false, "dump base64 encoded URI")
+	legacyMode = flag.Bool("legacy", false, "dump shadowsocks URI in legacy mode (default: off)")
 	generateJSONConfig = flag.Bool("generate-json-config", false, "generate JSON configurations")
 
 	flag.Usage = func() {

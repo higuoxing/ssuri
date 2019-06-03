@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -19,8 +20,9 @@ type ShadowsocksURI struct {
 	Port     int
 	Method   string
 	Password string
-	Tag      string
-	PlainURI string
+	Tag      string            // optional
+	PlainURI string            // optional
+	Plugins  map[string]string // optional, used in SIP002 URI scheme
 }
 
 // DecodeBase64URI ... Decode base64 encoded URI.
@@ -97,45 +99,78 @@ func DecodePlainURI(uri string) (*ShadowsocksURI, error) {
 		Method:   method,
 		Password: password,
 		Tag:      "",
-		PlainURI: uri}, nil
+		PlainURI: uri,
+		Plugins:  nil,
+	}, nil
 }
 
 // EncodeBase64URI ... Encode shadowsocks configuration into base64 URI.
-func (ssc *ShadowsocksURI) EncodeBase64URI() string {
-	plainURI := ssc.Method + ":" +
-		ssc.Password + "@" +
-		ssc.Hostname + ":" +
-		strconv.Itoa(ssc.Port)
+func (ssu *ShadowsocksURI) EncodeBase64URI() string {
+	plainURI := ssu.Method + ":" +
+		ssu.Password + "@" +
+		ssu.Hostname + ":" +
+		strconv.Itoa(ssu.Port)
 
 	encoded := "ss://" +
 		base64.RawStdEncoding.EncodeToString([]byte(plainURI))
 
-	if ssc.Tag != "" {
-		return encoded + "#" + ssc.Tag
+	if ssu.Tag != "" {
+		return encoded + "#" + ssu.Tag
 	}
 
 	return encoded
 }
 
 // EncodePlainURI ... Encode shadowsocks configuration into plain URI.
-func (ssc *ShadowsocksURI) EncodePlainURI() string {
+func (ssu *ShadowsocksURI) EncodePlainURI() string {
 	return "ss://" +
-		ssc.Method + ":" +
-		ssc.Password + "@" +
-		ssc.Hostname + ":" +
-		strconv.Itoa(ssc.Port)
+		ssu.Method + ":" +
+		ssu.Password + "@" +
+		ssu.Hostname + ":" +
+		strconv.Itoa(ssu.Port)
+}
+
+// EncodeSIP002URI ... Encode shadowsocks configuration into SIP002 URI.
+func (ssu *ShadowsocksURI) EncodeSIP002URI() string {
+	var uri = "ss://"
+
+	// Encode user info.
+	userInfo := base64.URLEncoding.
+		EncodeToString([]byte(ssu.Method + ":" + ssu.Password))
+
+	// Add hostname, port.
+	uri += userInfo + "@" + ssu.Hostname + ":" + strconv.Itoa(ssu.Port)
+
+	params := url.Values{}
+
+	// Encode plugin parameters.
+	if ssu.Plugins != nil {
+		if len(ssu.Plugins) != 0 {
+			for k, v := range ssu.Plugins {
+				params.Add(k, v)
+			}
+
+			uri += "/?" + params.Encode()
+		}
+	}
+
+	if ssu.Tag != "" {
+		uri += "#" + ssu.Tag
+	}
+
+	return uri
 }
 
 // ToShadowsocksClientConfig ... Convert ShadowsocksURI to ShadowsocksClientConfig.
-func (ssc *ShadowsocksURI) ToShadowsocksClientConfig() ShadowsocksClientConfig {
+func (ssu *ShadowsocksURI) ToShadowsocksClientConfig() ShadowsocksClientConfig {
 	return ShadowsocksClientConfig{
-		Server:       ssc.Hostname,
-		ServerPort:   ssc.Port,
+		Server:       ssu.Hostname,
+		ServerPort:   ssu.Port,
 		LocalAddress: "127.0.0.1",
 		LocalPort:    1080,
-		Password:     ssc.Password,
+		Password:     ssu.Password,
 		Timeout:      300,
-		Method:       ssc.Method,
+		Method:       ssu.Method,
 		FastOpen:     false,
 	}
 }
@@ -191,6 +226,7 @@ func (sscc *ShadowsocksClientConfig) ToShadowsocksURI() ShadowsocksURI {
 		Password: sscc.Password,
 		Tag:      "",
 		PlainURI: "",
+		Plugins:  nil,
 	}
 }
 
