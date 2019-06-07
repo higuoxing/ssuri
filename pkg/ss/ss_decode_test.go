@@ -11,102 +11,160 @@ func TestURIDecode(t *testing.T) {
 		expectedConfig ss.ShadowsocksURI
 		b64URI         string
 		plainURI       string
+		sip002URI      string
 	}{
 		{
 			ss.ShadowsocksURI{
-				Hostname: "192.168.100.1",
-				Port:     8888,
-				Method:   "bf-cfb",
-				Password: "test",
-				Tag:      "example-server",
-				PlainURI: "ss://bf-cfb:test@192.168.100.1:8888",
+				Server: ss.Server("192.168.100.1", 8888),
+				Auth:   ss.Auth("bf-cfb", "test"),
+				Tag:    "example-server",
 			},
 			"ss://YmYtY2ZiOnRlc3RAMTkyLjE2OC4xMDAuMTo4ODg4#example-server",
 			"ss://bf-cfb:test@192.168.100.1:8888",
+			"ss://YmYtY2ZiOnRlc3Q=@192.168.100.1:8888#example-server",
 		},
 		{
 			ss.ShadowsocksURI{
-				Hostname: "192.168.101.101",
-				Port:     8889,
-				Method:   "bf-cfb",
-				Password: "some_password",
-				Tag:      "",
-				PlainURI: "ss://bf-cfb:some_password@192.168.101.101:8889",
+				Server: ss.Server("192.168.100.1", 8888),
+				Auth:   ss.Auth("rc4-md5", "passwd"),
+				Tag:    "example-server",
+				Plugin: ss.Plugin("obfs-local", map[string]string{"obfs": "http"}),
 			},
-			"ss://YmYtY2ZiOnNvbWVfcGFzc3dvcmRAMTkyLjE2OC4xMDEuMTAxOjg4ODk",
-			"ss://bf-cfb:some_password@192.168.101.101:8889",
+			"ss://cmM0LW1kNTpwYXNzd2RAMTkyLjE2OC4xMDAuMTo4ODg4#example-server",
+			"ss://rc4-md5:passwd@192.168.100.1:8888",
+			"ss://cmM0LW1kNTpwYXNzd2Q=@192.168.100.1:8888/?plugin=obfs-local%3Bobfs%3Dhttp#example-server",
 		},
 		{
 			ss.ShadowsocksURI{
-				Hostname: "192.168.102.3",
-				Port:     443,
-				Method:   "bf-cfb",
-				Password: "some_password@?",
-				Tag:      "",
-				PlainURI: "ss://bf-cfb:some_password@?@192.168.102.3:443",
+				Server: ss.Server("test.example.com", 8888),
+				Auth:   ss.Auth("rc4-md5", "passwd"),
+				Tag:    "example-server",
+				Plugin: ss.Plugin("obfs-local", map[string]string{"obfs": "http"}),
 			},
-			"ss://YmYtY2ZiOnNvbWVfcGFzc3dvcmRAP0AxOTIuMTY4LjEwMi4zOjQ0Mw",
-			"ss://bf-cfb:some_password@?@192.168.102.3:443",
-		},
-		{
-			ss.ShadowsocksURI{
-				Hostname: "some.host",
-				Port:     8888,
-				Method:   "bf-cfb",
-				Password: "test/!@#:",
-				Tag:      "",
-				PlainURI: "ss://bf-cfb:test/!@#:@some.host:8888",
-			},
-			"ss://YmYtY2ZiOnRlc3QvIUAjOkBzb21lLmhvc3Q6ODg4OA",
-			"ss://bf-cfb:test/!@#:@some.host:8888",
+			"ss://cmM0LW1kNTpwYXNzd2RAdGVzdC5leGFtcGxlLmNvbTo4ODg4#example-server",
+			"ss://rc4-md5:passwd@test.example.com:8888",
+			"ss://cmM0LW1kNTpwYXNzd2Q=@test.example.com:8888/?plugin=obfs-local%3Bobfs%3Dhttp#example-server",
 		},
 	}
 
 	for i, ut := range tests {
-		ssconf, err := ss.DecodeBase64URI(ut.b64URI)
+		sip002, err := ss.DecodeSIP002URI(ut.sip002URI)
 		if err != nil {
-			t.Errorf("#%d test failed. DecodeBase64URI() failed", i)
+			t.Errorf("#%d test failed. DecodeSIP002URI() failed", i)
 			continue
 		}
 
-		if !configIsEqual(*ssconf, ut.expectedConfig, true) {
-			t.Errorf("#%d test failed. Expected %v, Got %v", i, ut.expectedConfig, *ssconf)
+		if !checkSIP002URI(sip002, &ut.expectedConfig) {
+			t.Errorf("#%d test failed.\nExpected: %v\nGot     : %v", i, ut.expectedConfig, *sip002)
 		}
 
-		ssconf1, err := ss.DecodePlainURI(ut.plainURI)
+		b64, err := ss.DecodeBase64URI(ut.b64URI)
 		if err != nil {
-			t.Errorf("#%d test failed. DecodeBase64URI() failed", i)
+			t.Errorf("#%d test failed. DecodeSIP002URI() failed", i)
 			continue
 		}
 
-		if !configIsEqual(*ssconf1, ut.expectedConfig, false) {
-			t.Errorf("#%d test failed. Expected %v, Got %v", i, ut.expectedConfig, *ssconf1)
+		if !checkBase64EncodedURI(b64, &ut.expectedConfig) {
+			t.Errorf("#%d test failed.\nExpected: %v\nGot     : %v", i, ut.expectedConfig, *b64)
+		}
+
+		plain, err := ss.DecodePlainURI(ut.plainURI)
+		if err != nil {
+			t.Errorf("#%d test failed. DecodeSIP002URI() failed", i)
+			continue
+		}
+
+		if !checkPlainURI(plain, &ut.expectedConfig) {
+			t.Errorf("#%d test failed.\nExpected: %v\nGot     : %v", i, ut.expectedConfig, *plain)
 		}
 	}
 }
 
-func configIsEqual(conf1 ss.ShadowsocksURI, conf2 ss.ShadowsocksURI, checkTag bool) bool {
-	if conf1.Hostname != conf2.Hostname {
+func checkSIP002URI(uri1, uri2 *ss.ShadowsocksURI) bool {
+	s1 := uri1.Server
+	s2 := uri2.Server
+
+	if s1.Hostname() != s2.Hostname() || s1.Port() != s2.Port() {
 		return false
 	}
 
-	if conf1.Port != conf2.Port {
+	a1 := uri1.Auth
+	a2 := uri2.Auth
+
+	if a1.Method() != a2.Method() || a1.Password() != a2.Password() {
 		return false
 	}
 
-	if conf1.Password != conf2.Password {
+	t1 := uri1.Tag
+	t2 := uri2.Tag
+
+	if t1 != t2 {
 		return false
 	}
 
-	if conf1.Method != conf2.Method {
+	p1 := uri1.Plugin
+	p2 := uri2.Plugin
+
+	if p1 != nil || p2 != nil {
+		if p1 == nil || p2 == nil {
+			return false
+		}
+
+		if p1.Name() != p2.Name() {
+			return false
+		}
+
+		if len(p1.Options()) != len(p2.Options()) {
+			return false
+		}
+
+		for k, v := range p1.Options() {
+			if p2.Options()[k] != v {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func checkBase64EncodedURI(uri1, uri2 *ss.ShadowsocksURI) bool {
+	s1 := uri1.Server
+	s2 := uri2.Server
+
+	if s1.Hostname() != s2.Hostname() || s1.Port() != s2.Port() {
 		return false
 	}
 
-	if conf1.Tag != conf2.Tag && checkTag {
+	a1 := uri1.Auth
+	a2 := uri2.Auth
+
+	if a1.Method() != a2.Method() || a1.Password() != a2.Password() {
 		return false
 	}
 
-	if conf1.PlainURI != conf2.PlainURI {
+	t1 := uri1.Tag
+	t2 := uri2.Tag
+
+	if t1 != t2 {
+		return false
+	}
+
+	return true
+}
+
+func checkPlainURI(uri1, uri2 *ss.ShadowsocksURI) bool {
+	s1 := uri1.Server
+	s2 := uri2.Server
+
+	if s1.Hostname() != s2.Hostname() || s1.Port() != s2.Port() {
+		return false
+	}
+
+	a1 := uri1.Auth
+	a2 := uri2.Auth
+
+	if a1.Method() != a2.Method() || a1.Password() != a2.Password() {
 		return false
 	}
 
