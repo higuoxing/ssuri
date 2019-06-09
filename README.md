@@ -1,6 +1,6 @@
 ## SSURI
 
-> A commandline tool for manipulating Shadowsocks URI and configuration.
+> A command line tool for manipulating Shadowsocks URI and configuration.
 
 ### Installation
 
