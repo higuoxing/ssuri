@@ -36,11 +36,15 @@ Usage: ssuri [-h] [-i in_file] [-o out_file]
 $ echo "ss://YmYtY2ZiOnRlc3Q=@192.168.100.1:8888" | ssuri -dump-uri -generate-json-config -generate-qr
 ```
 
+![](./.screenshot/ssuri_1.jpg)
+
 - Read JSON configuration, generate shadowsocks URI and QR code.
 
 ```
-$ ssuri -i config.json -generate-json-config -generate-uri
+$ ssuri -i config.json -generate-qr -generate-uri
 ```
+
+![](./.screenshot/ssuri_2.jpg)
 
 ### Features
 

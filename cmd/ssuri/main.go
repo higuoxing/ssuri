@@ -113,6 +113,6 @@ func main() {
 	}
 
 	if *generateURI {
-		fmt.Fprintf(outputFile, "%s", uri.EncodeSIP002URI())
+		fmt.Fprintf(outputFile, "%s\n", uri.EncodeSIP002URI())
 	}
 }
