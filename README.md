@@ -11,7 +11,7 @@ $ go get github.com/vgxbj/ssuri/cmd/ssuri
 ### Usage
 
 ```
-Usage: ./main [-h] [-i in_file] [-o out_file]
+Usage: ssuri [-h] [-i in_file] [-o out_file]
   -dump-uri
         dump shadowsocks URI
   -generate-json-config
