@@ -3,7 +3,7 @@ package ss_test
 import (
 	"testing"
 
-	"github.com/vgxbj/ssutils/pkg/ss"
+	"github.com/vgxbj/ssuri/pkg/ss"
 )
 
 func TestURIDecode(t *testing.T) {
@@ -15,8 +15,8 @@ func TestURIDecode(t *testing.T) {
 	}{
 		{
 			ss.ShadowsocksURI{
-				Server: ss.Server("192.168.100.1", 8888),
-				Auth:   ss.Auth("bf-cfb", "test"),
+				Remote: ss.NewServer("192.168.100.1", 8888),
+				Auth:   ss.NewAuthInfo("bf-cfb", "test"),
 				Tag:    "example-server",
 			},
 			"ss://YmYtY2ZiOnRlc3RAMTkyLjE2OC4xMDAuMTo4ODg4#example-server",
@@ -25,10 +25,10 @@ func TestURIDecode(t *testing.T) {
 		},
 		{
 			ss.ShadowsocksURI{
-				Server: ss.Server("192.168.100.1", 8888),
-				Auth:   ss.Auth("rc4-md5", "passwd"),
+				Remote: ss.NewServer("192.168.100.1", 8888),
+				Auth:   ss.NewAuthInfo("rc4-md5", "passwd"),
 				Tag:    "example-server",
-				Plugin: ss.Plugin("obfs-local", map[string]string{"obfs": "http"}),
+				Plugin: ss.NewPlugin("obfs-local", map[string]string{"obfs": "http"}),
 			},
 			"ss://cmM0LW1kNTpwYXNzd2RAMTkyLjE2OC4xMDAuMTo4ODg4#example-server",
 			"ss://rc4-md5:passwd@192.168.100.1:8888",
@@ -36,10 +36,10 @@ func TestURIDecode(t *testing.T) {
 		},
 		{
 			ss.ShadowsocksURI{
-				Server: ss.Server("test.example.com", 8888),
-				Auth:   ss.Auth("rc4-md5", "passwd"),
+				Remote: ss.NewServer("test.example.com", 8888),
+				Auth:   ss.NewAuthInfo("rc4-md5", "passwd"),
 				Tag:    "example-server",
-				Plugin: ss.Plugin("obfs-local", map[string]string{"obfs": "http"}),
+				Plugin: ss.NewPlugin("obfs-local", map[string]string{"obfs": "http"}),
 			},
 			"ss://cmM0LW1kNTpwYXNzd2RAdGVzdC5leGFtcGxlLmNvbTo4ODg4#example-server",
 			"ss://rc4-md5:passwd@test.example.com:8888",
@@ -80,9 +80,9 @@ func TestURIDecode(t *testing.T) {
 	}
 }
 
-func checkSIP002URI(uri1, uri2 *ss.ShadowsocksURI) bool {
-	s1 := uri1.Server
-	s2 := uri2.Server
+func checkBasic(uri1, uri2 *ss.ShadowsocksURI) bool {
+	s1 := uri1.Remote
+	s2 := uri2.Remote
 
 	if s1.Hostname() != s2.Hostname() || s1.Port() != s2.Port() {
 		return false
@@ -92,6 +92,14 @@ func checkSIP002URI(uri1, uri2 *ss.ShadowsocksURI) bool {
 	a2 := uri2.Auth
 
 	if a1.Method() != a2.Method() || a1.Password() != a2.Password() {
+		return false
+	}
+
+	return true
+}
+
+func checkSIP002URI(uri1, uri2 *ss.ShadowsocksURI) bool {
+	if !checkBasic(uri1, uri2) {
 		return false
 	}
 
@@ -129,17 +137,7 @@ func checkSIP002URI(uri1, uri2 *ss.ShadowsocksURI) bool {
 }
 
 func checkBase64EncodedURI(uri1, uri2 *ss.ShadowsocksURI) bool {
-	s1 := uri1.Server
-	s2 := uri2.Server
-
-	if s1.Hostname() != s2.Hostname() || s1.Port() != s2.Port() {
-		return false
-	}
-
-	a1 := uri1.Auth
-	a2 := uri2.Auth
-
-	if a1.Method() != a2.Method() || a1.Password() != a2.Password() {
+	if !checkBasic(uri1, uri2) {
 		return false
 	}
 
@@ -154,17 +152,7 @@ func checkBase64EncodedURI(uri1, uri2 *ss.ShadowsocksURI) bool {
 }
 
 func checkPlainURI(uri1, uri2 *ss.ShadowsocksURI) bool {
-	s1 := uri1.Server
-	s2 := uri2.Server
-
-	if s1.Hostname() != s2.Hostname() || s1.Port() != s2.Port() {
-		return false
-	}
-
-	a1 := uri1.Auth
-	a2 := uri2.Auth
-
-	if a1.Method() != a2.Method() || a1.Password() != a2.Password() {
+	if !checkBasic(uri1, uri2) {
 		return false
 	}
 

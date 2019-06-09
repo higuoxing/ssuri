@@ -15,50 +15,50 @@ import (
 // Where the plain URI should be
 // ss://method:password@hostname:port
 type ShadowsocksURI struct {
-	Server *RemoteServer
+	Remote *Server
 	Auth   *AuthInfo
 	Tag    string      // optional
 	Plugin *PluginInfo // optional, used in SIP002 URI scheme
 }
 
-// Server ... Returns a RemoteServer containing the given hostname and port.
-func Server(hostname string, port int) *RemoteServer {
-	return &RemoteServer{hostname, port}
+// NewServer ... Returns a *Server containing the given hostname and port.
+func NewServer(hostname string, port int) *Server {
+	return &Server{hostname, port}
 }
 
-// Auth ... Returns a AuthInfo containing the given method and password.
-func Auth(method, password string) *AuthInfo {
+// NewAuthInfo ... Returns a *AuthInfo containing the given method and password.
+func NewAuthInfo(method, password string) *AuthInfo {
 	return &AuthInfo{method, password}
 }
 
-// Plugin ... Returns a PluginInfo containing the given name and options.
-func Plugin(name string, options map[string]string) *PluginInfo {
+// NewPlugin ... Returns a *PluginInfo containing the given name and options.
+func NewPlugin(name string, options map[string]string) *PluginInfo {
 	return &PluginInfo{name, options}
 }
 
-// RemoteServer ... Struct for shadowsocks remote server.
-type RemoteServer struct {
+// Server ... Struct for shadowsocks remote server.
+type Server struct {
 	hostname string
 	port     int
 }
 
 // Hostname ... Returns hostname.
-func (rs *RemoteServer) Hostname() string {
-	return rs.hostname
+func (s *Server) Hostname() string {
+	return s.hostname
 }
 
 // Port ... Returns port.
-func (rs *RemoteServer) Port() int {
-	return rs.port
+func (s *Server) Port() int {
+	return s.port
 }
 
 // String ... Encode remote server address.
-func (rs *RemoteServer) String() string {
-	if strings.Contains(rs.hostname, ":") {
-		return "[" + rs.hostname + "]" + ":" + strconv.Itoa(rs.port)
+func (s *Server) String() string {
+	if strings.Contains(s.hostname, ":") {
+		return "[" + s.hostname + "]" + ":" + strconv.Itoa(s.port)
 	}
 
-	return rs.hostname + ":" + strconv.Itoa(rs.port)
+	return s.hostname + ":" + strconv.Itoa(s.port)
 }
 
 // AuthInfo ... Struct for authentication information in ShadowsocksURI.
@@ -99,6 +99,22 @@ func (plugin *PluginInfo) Options() map[string]string {
 	return plugin.options
 }
 
+// OptionsString ... Encode options to string.
+func (plugin *PluginInfo) OptionsString() string {
+	// Safely return "" for empty map.
+	if len(plugin.Options()) == 0 {
+		return ""
+	}
+
+	options := []string{}
+
+	for k, v := range plugin.Options() {
+		options = append(options, k+"="+v)
+	}
+
+	return strings.Join(options, ";")
+}
+
 // String ... Return the encoded plugin information.
 func (plugin *PluginInfo) String() string {
 	builder := url.Values{}
@@ -123,7 +139,7 @@ func (uri *ShadowsocksURI) EncodeSIP002URI() string {
 	auth = base64.URLEncoding.EncodeToString([]byte(auth))
 
 	// Add hostname, port.
-	wrappedHost := uri.Server.String()
+	wrappedHost := uri.Remote.String()
 
 	// Encode plugin parameters.
 	var plugin = ""
@@ -142,7 +158,7 @@ func (uri *ShadowsocksURI) EncodeSIP002URI() string {
 func (uri *ShadowsocksURI) EncodeBase64URI() string {
 	auth := uri.Auth.String()
 
-	wrappedHost := uri.Server.String()
+	wrappedHost := uri.Remote.String()
 
 	plainURI := auth + "@" + wrappedHost
 
@@ -158,7 +174,7 @@ func (uri *ShadowsocksURI) EncodeBase64URI() string {
 func (uri *ShadowsocksURI) EncodePlainURI() string {
 	auth := uri.Auth.String()
 
-	wrappedHost := uri.Server.String()
+	wrappedHost := uri.Remote.String()
 
 	return "ss://" + auth + "@" + wrappedHost
 }
@@ -223,7 +239,7 @@ func DecodeSIP002URI(uri string) (*ShadowsocksURI, error) {
 	}
 
 	return &ShadowsocksURI{
-		Server: host,
+		Remote: host,
 		Auth:   auth,
 		Tag:    tag,
 		Plugin: plugin,
@@ -268,7 +284,7 @@ func DecodeBase64URI(uri string) (*ShadowsocksURI, error) {
 	}
 
 	return &ShadowsocksURI{
-		Server: host,
+		Remote: host,
 		Auth:   auth,
 		Tag:    tag,
 		Plugin: nil,
@@ -301,7 +317,7 @@ func DecodePlainURI(uri string) (*ShadowsocksURI, error) {
 	}
 
 	return &ShadowsocksURI{
-		Server: host,
+		Remote: host,
 		Auth:   auth,
 		Tag:    "",
 		Plugin: nil,
@@ -360,14 +376,14 @@ func splitRemoteAndPlugin(uri string) (string, string, error) {
 	parsedURI, err := url.Parse("//" + uri)
 
 	if err != nil {
-		return "", "", errors.New("invalid URI")
+		return "", "", err //errors.New("invalid URI")
 	}
 
 	return parsedURI.Host, parsedURI.Query().Get("plugin"), nil
 }
 
 // parseRemoteServer ... Parse remote server.
-func parseRemoteServer(hostStr string) (*RemoteServer, error) {
+func parseRemoteServer(hostStr string) (*Server, error) {
 	splitIndex := strings.LastIndexByte(hostStr, ':')
 
 	if splitIndex == -1 || splitIndex == 0 || splitIndex == len(hostStr)-1 {
@@ -379,7 +395,7 @@ func parseRemoteServer(hostStr string) (*RemoteServer, error) {
 		return nil, errors.New("invalid <port>")
 	}
 
-	return &RemoteServer{hostStr[:splitIndex], port}, nil
+	return &Server{hostStr[:splitIndex], port}, nil
 }
 
 // parsePlugin ... Parse plugin (used in SIP002 URI scheme).
@@ -410,5 +426,39 @@ func parsePlugin(pluginStr string) (*PluginInfo, error) {
 		}
 	}
 
-	return Plugin(name, options), nil
+	return NewPlugin(name, options), nil
+}
+
+// ParsePluginOpts ... Parse plugin options.
+func ParsePluginOpts(s string) (map[string]string, error) {
+	if s == "" {
+		return nil, nil
+	}
+
+	opt := make(map[string]string)
+	opts := strings.Split(s, ";")
+
+	for _, o := range opts {
+		kv := strings.Split(o, "=")
+		if len(kv) == 2 {
+			opt[kv[0]] = kv[1]
+		} else {
+			return nil, errors.New("invalid <plugin_opts>")
+		}
+	}
+
+	return opt, nil
+}
+
+// ToShadowsocksClientConfig ... Convert shadowsocks URI to client configuration.
+func ToShadowsocksClientConfig(uri *ShadowsocksURI) *ShadowsocksClientConfig {
+	return &ShadowsocksClientConfig{
+		Remote:   uri.Remote,
+		Auth:     uri.Auth,
+		Local:    NewServer("127.0.0.1", 1080),
+		Timeout:  300,
+		FastOpen: false,
+		Workers:  1,
+		Plugin:   uri.Plugin,
+	}
 }
