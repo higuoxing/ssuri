@@ -28,7 +28,7 @@ func init() {
 	generateQRCode = flag.Bool("generate-qr", false, "generate QR code")
 
 	flag.Usage = func() {
-		//fmt.Printf("Usage: %s [-h] [-i in_file] [-o out_file]\n", os.Args[0] /* Program name */)
+		fmt.Printf("Usage: %s [-h] [-i in_file] [-o out_file]\n", os.Args[0] /* Program name */)
 		flag.PrintDefaults()
 	}
 }
