@@ -44,9 +44,9 @@ $ ssuri -i config.json -generate-json-config -generate-qr
 
 ### Features
 
-[-] Support SIP002 URI scheme and legacy base64 encoded URI scheme.
-[-] Read JSON configuration or URI. Generate JSON configuration, URI or QR code.
+- [x] Support SIP002 URI scheme and legacy base64 encoded URI scheme.
+- [x] Read JSON configuration or URI. Generate JSON configuration, URI or QR code.
 
 ### TODO
 
-[ ] Support manipulating shadowsocksR URI or configuration.
+- [ ] Support manipulating shadowsocksR URI or configuration.
