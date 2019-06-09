@@ -39,7 +39,7 @@ $ echo "ss://YmYtY2ZiOnRlc3Q=@192.168.100.1:8888" | ssuri -dump-uri -generate-js
 - Read JSON configuration, generate shadowsocks URI and QR code.
 
 ```
-$ ssuri -i config.json -generate-json-config -generate-qr
+$ ssuri -i config.json -generate-json-config -generate-uri
 ```
 
 ### Features

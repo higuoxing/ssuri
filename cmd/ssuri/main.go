@@ -17,6 +17,7 @@ var dumpURI *bool            // dump URI information
 var legacyMode *bool         // dump shadowsocks URI in legacy mode, option -legacy, default off
 var generateJSONConfig *bool // generate JSON config, option -generate-json-config
 var generateQRCode *bool     // generate QR code, option -generate-qr.
+var generateURI *bool        // generate URI.
 
 func init() {
 	inputFileName = flag.String("i", "-", "input file (default: \"-\" for stdin)")
@@ -26,6 +27,7 @@ func init() {
 	legacyMode = flag.Bool("legacy", false, "dump shadowsocks URI in legacy mode (default: off)")
 	generateJSONConfig = flag.Bool("generate-json-config", false, "generate JSON configurations")
 	generateQRCode = flag.Bool("generate-qr", false, "generate QR code")
+	generateURI = flag.Bool("generate-uri", false, "generate URI")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [-h] [-i in_file] [-o out_file]\n", os.Args[0] /* Program name */)
@@ -108,5 +110,9 @@ func main() {
 
 	if *generateQRCode {
 		generateShadowsocksQRCode(uri, false, outputFile)
+	}
+
+	if *generateURI {
+		fmt.Fprintf(outputFile, "%s", uri.EncodeSIP002URI())
 	}
 }
